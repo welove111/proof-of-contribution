@@ -1,0 +1,23 @@
+name: Proof of Contribution
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  pay-contributor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Count downloads & trigger payment
+        uses: welove111/proof-of-contribution@v1
+        with:
+          lightning_address: ${{ secrets.LIGHTNING_ADDRESS }}
+          package_name: ${{ github.event.repository.name }}
+          package_registry: 'npm'

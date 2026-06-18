@@ -1,0 +1,27 @@
+name: 'Proof of Contribution'
+description: 'Get paid in Bitcoin for every download of your open source package'
+author: 'welove111'
+branding:
+  icon: 'zap'
+  color: 'yellow'
+inputs:
+  lightning_address:
+    description: 'Your Lightning address (e.g. you@blink.sv)'
+    required: true
+  package_name:
+    description: 'Your package name on the registry'
+    required: true
+  package_registry:
+    description: 'Package registry: npm | pip | cargo'
+    required: false
+    default: 'npm'
+outputs:
+  downloads:
+    description: 'Number of downloads today'
+  sats_earned:
+    description: 'Sats earned today'
+  payment_status:
+    description: 'Payment status'
+runs:
+  using: 'node20'
+  main: 'action/index.js'
