@@ -1,5 +1,37 @@
-const core = require('@actions/core');
 const https = require('https');
+
+// ---- Minimal @actions/core replacement (zero dependencies) ----
+// GitHub Actions passes inputs as environment variables named
+// INPUT_<NAME-UPPERCASED-WITH-DASHES-TO-UNDERSCORES-NOT-NEEDED-HERE>.
+// e.g. `lightning_address` input -> INPUT_LIGHTNING_ADDRESS
+const core = {
+  getInput(name, options = {}) {
+    const val = process.env[`INPUT_${name.toUpperCase()}`] || '';
+    if (options.required && !val) {
+      throw new Error(`Input required and not supplied: ${name}`);
+    }
+    return val.trim();
+  },
+  info(msg) {
+    console.log(msg);
+  },
+  setOutput(name, value) {
+    // Modern GitHub Actions output format: append to $GITHUB_OUTPUT file
+    const fs = require('fs');
+    const outFile = process.env.GITHUB_OUTPUT;
+    if (outFile) {
+      fs.appendFileSync(outFile, `${name}=${value}\n`);
+    } else {
+      // fallback for older runners
+      console.log(`::set-output name=${name}::${value}`);
+    }
+  },
+  setFailed(msg) {
+    console.error(`::error::${msg}`);
+    process.exitCode = 1;
+  }
+};
+// ---- end replacement ----
 
 const REGISTRIES = {
   npm: (pkg) => `https://api.npmjs.org/downloads/point/last-day/${pkg}`,
@@ -62,7 +94,13 @@ async function sendLightningPayment(address, sats, pkg) {
     }, (res) => {
       let data = '';
       res.on('data', (c) => data += c);
-      res.on('end', () => resolve(JSON.parse(data)));
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve({ status: 'error', detail: 'non-JSON response from payment endpoint' });
+        }
+      });
     });
     req.on('error', () => resolve({ status: 'queued' }));
     req.write(payload);
